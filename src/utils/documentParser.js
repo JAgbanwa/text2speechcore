@@ -1,6 +1,6 @@
 /**
  * Parses a File into an array of non-empty text lines.
- * Supports: PDF, DOCX/DOC, TXT, MD, HTML, CSV, and any plain-text format.
+ * Supports: PDF, DOCX/DOC, PPTX, TXT, MD, HTML, CSV, and any plain-text format.
  */
 
 let _pdfjs = null
@@ -25,6 +25,8 @@ export async function parseDocument(file) {
     case 'docx':
     case 'doc':
       return parseDOCX(file)
+    case 'pptx':
+      return parsePPTX(file)
     case 'html':
     case 'htm':
       return parseHTML(file)
@@ -64,6 +66,50 @@ async function parsePDF(file) {
     }
 
     if (p < pdf.numPages) lines.push(`── Page ${p + 1} ──`)
+  }
+
+  return lines.filter((l) => l.trim().length > 0)
+}
+
+// ---------------------------------------------------------------------------
+// PPTX  (jszip + DrawingML XML)
+// ---------------------------------------------------------------------------
+async function parsePPTX(file) {
+  const JSZip = (await import('jszip')).default
+  const buffer = await file.arrayBuffer()
+  const zip = await JSZip.loadAsync(buffer)
+
+  // DrawingML namespace used by all text elements in PPTX slides
+  const DML_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+
+  // Collect slide entries sorted numerically (slide1.xml, slide2.xml, …)
+  const slideNames = Object.keys(zip.files)
+    .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a, b) => {
+      const n = (s) => parseInt(s.match(/\d+/)[0], 10)
+      return n(a) - n(b)
+    })
+
+  const lines = []
+  const domParser = new DOMParser()
+
+  for (let i = 0; i < slideNames.length; i++) {
+    const xml = await zip.files[slideNames[i]].async('text')
+    const doc = domParser.parseFromString(xml, 'application/xml')
+
+    // Each <a:p> is a paragraph; collect text from its <a:t> runs
+    const paragraphs = doc.getElementsByTagNameNS(DML_NS, 'p')
+    const slideLines = []
+    for (const p of paragraphs) {
+      const runs = p.getElementsByTagNameNS(DML_NS, 't')
+      const text = [...runs].map((t) => t.textContent).join('').trim()
+      if (text) slideLines.push(text)
+    }
+
+    if (slideLines.length > 0) {
+      if (i > 0) lines.push(`── Slide ${i + 1} ──`)
+      lines.push(...slideLines)
+    }
   }
 
   return lines.filter((l) => l.trim().length > 0)
