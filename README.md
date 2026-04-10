@@ -4,7 +4,7 @@ A web app that accepts a document of any format and reads its text aloud to you 
 
 ## Features
 
-- **Universal document support** — PDF, DOCX, DOC, TXT, Markdown, HTML, CSV, and more
+- **Universal document support** — PDF, DOCX, DOC, PPTX, TXT, Markdown, HTML, CSV, and more
 - **Line-by-line playback** — each line is highlighted and auto-scrolled into view as it is spoken
 - **Live translation** — translate each line into any of 40+ languages as it is read aloud; the translated text is displayed in the list (with the original below it) and spoken in the target language; the TTS voice automatically switches to match the chosen language; powered by the free [MyMemory API](https://mymemory.translated.net)
 - **Full transport controls** — Play, Pause, Stop, Previous line, Next line
@@ -22,6 +22,7 @@ A web app that accepts a document of any format and reads its text aloud to you 
 | UI framework | React 18 + Vite 5 |
 | PDF parsing | [pdf.js](https://mozilla.github.io/pdf.js/) (`pdfjs-dist`) |
 | DOCX parsing | [Mammoth.js](https://github.com/mwilliamson/mammoth.js) |
+| PPTX parsing | [JSZip](https://stuk.github.io/jszip/) + DrawingML XML |
 | Speech | Web Speech API (`SpeechSynthesis`) |
 | Styling | Plain CSS (custom properties, no framework) |
 
@@ -52,7 +53,7 @@ src/
 ├── hooks/
 │   └── useTheme.js              # Reads OS preference, persists choice to localStorage
 └── utils/
-    ├── documentParser.js        # Extracts text lines from any supported format
+    └── documentParser.js        # Extracts text lines from any supported format (PDF, DOCX, PPTX, …)
     ├── SpeechEngine.js          # Web Speech API wrapper with async getLineText hook
     └── translateText.js         # MyMemory API wrapper + 40+ language list
 ```
