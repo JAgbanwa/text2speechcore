@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { SpeechEngine } from '../utils/SpeechEngine'
 import ThemeToggle from './ThemeToggle'
+import { translateLine, LANGUAGES } from '../utils/translateText'
 
 // Icons as tiny inline SVGs
 const IconPlay = () => (
@@ -54,9 +55,15 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
   const [voiceIdx, setVoiceIdx] = useState(0)
   const [focusMode, setFocusMode] = useState(false)
 
+  // ── Translation state ──────────────────────────────────────────
+  const [translateTo, setTranslateTo] = useState('none')
+  const [sourceLang, setSourceLang]   = useState('en')
+  const translationsRef = useRef({})              // index → translated string (cache)
+  const [translationTick, setTranslationTick] = useState(0) // increment to force re-render
+
   const engineRef = useRef(null)
-  const lineRefs = useRef([])
-  const listRef = useRef(null)
+  const lineRefs  = useRef([])
+  const listRef   = useRef(null)
 
   // ——————————————————————————————————————————————
   // Engine setup
@@ -108,6 +115,49 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
   }, [currentLine, focusMode])
 
   // ——————————————————————————————————————————————
+  // Translation
+  // ——————————————————————————————————————————————
+
+  // Clear cache whenever the language pair changes
+  useEffect(() => {
+    translationsRef.current = {}
+    setTranslationTick(0)
+  }, [translateTo, sourceLang])
+
+  // getLineText is the async hook given to SpeechEngine
+  const getLineText = useCallback(
+    async (index, rawText) => {
+      if (translateTo === 'none' || translateTo === sourceLang) return rawText
+      const cached = translationsRef.current[index]
+      if (cached) return cached
+      const result = await translateLine(rawText, translateTo, sourceLang)
+      translationsRef.current[index] = result
+      setTranslationTick((t) => t + 1) // re-render list to show translation
+      return result
+    },
+    [translateTo, sourceLang],
+  )
+
+  // Sync getLineText into the engine whenever it changes
+  useEffect(() => {
+    if (!engineRef.current) return
+    engineRef.current.getLineText =
+      translateTo !== 'none' && translateTo !== sourceLang ? getLineText : null
+  }, [getLineText, translateTo, sourceLang])
+
+  // Auto-switch TTS voice to match the target language when available
+  useEffect(() => {
+    if (translateTo === 'none' || voices.length === 0) return
+    const matchIdx = voices.findIndex((v) =>
+      v.lang.toLowerCase().startsWith(translateTo.toLowerCase()),
+    )
+    if (matchIdx >= 0) {
+      setVoiceIdx(matchIdx)
+      engineRef.current?.setVoice(voices[matchIdx])
+    }
+  }, [translateTo, voices])
+
+  // ——————————————————————————————————————————————
   // Control handlers
   // ——————————————————————————————————————————————
   const handlePlayPause = useCallback(() => {
@@ -147,10 +197,19 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
     [lines.length],
   )
 
+  const handleTranslateToChange = useCallback((e) => {
+    setTranslateTo(e.target.value)
+  }, [])
+
+  const handleSourceLangChange = useCallback((e) => {
+    setSourceLang(e.target.value)
+  }, [])
+
   // ——————————————————————————————————————————————
-  // Render
+  // Render helpers
   // ——————————————————————————————————————————————
-  const isSeparator = (l) => l.startsWith('──')
+  const isSeparator   = (l) => l.startsWith('──')
+  const isTranslating = translateTo !== 'none' && translateTo !== sourceLang
 
   return (
     <div className={`reader-page${focusMode ? ' focus-mode' : ''}`}>
@@ -181,12 +240,20 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
       {/* ── Focus mode: big centred line ── */}
       {focusMode && (
         <div className="focus-view">
-          {currentLine >= 0 ? (
-            <>
-              <p className="focus-line" key={currentLine}>{lines[currentLine]}</p>
-              <p className="focus-counter">{currentLine + 1} / {lines.length}</p>
-            </>
-          ) : (
+          {currentLine >= 0 ? (() => {
+            const translation = isTranslating ? translationsRef.current[currentLine] : null
+            return (
+              <>
+                <p className="focus-line" key={`${currentLine}-${translationTick}`}>
+                  {translation ?? lines[currentLine]}
+                </p>
+                {translation && translation !== lines[currentLine] && (
+                  <p className="focus-original">{lines[currentLine]}</p>
+                )}
+                <p className="focus-counter">{currentLine + 1} / {lines.length}</p>
+              </>
+            )
+          })() : (
             <p className="focus-prompt">Press play to start reading</p>
           )}
         </div>
@@ -195,18 +262,26 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
       {/* ── Scrollable line list ── */}
       {!focusMode && (
         <div className="lines-list" ref={listRef}>
-          {lines.map((line, idx) => (
-            <div
-              key={idx}
-              ref={(el) => (lineRefs.current[idx] = el)}
-              className={`line-row${idx === currentLine ? ' active' : ''}${isSeparator(line) ? ' separator' : ''}`}
-              onClick={() => !isSeparator(line) && handleLineClick(idx)}
-              title={isSeparator(line) ? undefined : 'Click to read from here'}
-            >
-              <span className="ln">{isSeparator(line) ? '' : idx + 1}</span>
-              <span className="lt">{line}</span>
-            </div>
-          ))}
+          {lines.map((line, idx) => {
+            const translation = isTranslating ? translationsRef.current[idx] : null
+            return (
+              <div
+                key={idx}
+                ref={(el) => (lineRefs.current[idx] = el)}
+                className={`line-row${idx === currentLine ? ' active' : ''}${isSeparator(line) ? ' separator' : ''}`}
+                onClick={() => !isSeparator(line) && handleLineClick(idx)}
+                title={isSeparator(line) ? undefined : 'Click to read from here'}
+              >
+                <span className="ln">{isSeparator(line) ? '' : idx + 1}</span>
+                <span className="lt">
+                  {translation ?? line}
+                  {translation && translation !== line && (
+                    <span className="lt-original">{line}</span>
+                  )}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -301,6 +376,36 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
                 </select>
               </label>
             )}
+
+            <label className="setting-label">
+              Translate
+              <div className="translate-row">
+                <select
+                  className="voice-select translate-select"
+                  value={sourceLang}
+                  onChange={handleSourceLangChange}
+                  aria-label="Document language"
+                  title="Document language (source)"
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+                <span className="translate-arrow" aria-hidden="true">→</span>
+                <select
+                  className="voice-select translate-select"
+                  value={translateTo}
+                  onChange={handleTranslateToChange}
+                  aria-label="Translate to language"
+                  title="Translate reading into this language"
+                >
+                  <option value="none">Off</option>
+                  {LANGUAGES.filter((l) => l.code !== sourceLang).map((l) => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+              </div>
+            </label>
           </div>
         </div>
       </div>

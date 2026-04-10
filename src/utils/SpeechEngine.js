@@ -17,11 +17,16 @@ export class SpeechEngine {
     this.rate = 1
     this.pitch = 1
     this.voice = null
+    this._currentSpeakId = 0 // guards against stale async translation callbacks
 
     // Callbacks – set these after construction
     this.onLineChange = null   // (index: number) => void
     this.onStateChange = null  // (isPlaying: boolean) => void
     this.onFinish = null       // () => void
+
+    // Optional async hook – set by TextReader when translation is active
+    // signature: (index: number, rawText: string) => Promise<string>
+    this.getLineText = null
   }
 
   // ------------------------------------------------------------------
@@ -115,7 +120,9 @@ export class SpeechEngine {
   // Private
   // ------------------------------------------------------------------
 
-  _speak(index) {
+  async _speak(index) {
+    const speakId = ++this._currentSpeakId
+
     // Skip blank lines silently but still advance the visual cursor
     if (index < this.lines.length && !this.lines[index]?.trim()) {
       this.currentIndex = index
@@ -135,20 +142,27 @@ export class SpeechEngine {
     this.currentIndex = index
     if (this.onLineChange) this.onLineChange(index)
 
-    const utterance = new SpeechSynthesisUtterance(this.lines[index])
+    // Resolve text — possibly translated (async)
+    const rawText = this.lines[index]
+    const text = this.getLineText ? await this.getLineText(index, rawText) : rawText
+
+    // Bail out if the user paused/stopped/seeked during the async translation fetch
+    if (speakId !== this._currentSpeakId || !this.isPlaying) return
+
+    const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = this.rate
     utterance.pitch = this.pitch
     if (this.voice) utterance.voice = this.voice
 
     utterance.onend = () => {
-      if (this.isPlaying) this._speak(index + 1)
+      if (this.isPlaying && speakId === this._currentSpeakId) this._speak(index + 1)
     }
 
     utterance.onerror = (e) => {
       // 'interrupted' / 'canceled' are expected when we cancel() before a new speak()
       if (e.error !== 'interrupted' && e.error !== 'canceled') {
         console.error('SpeechSynthesisUtterance error:', e.error)
-        if (this.isPlaying) this._speak(index + 1)
+        if (this.isPlaying && speakId === this._currentSpeakId) this._speak(index + 1)
       }
     }
 
