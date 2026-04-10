@@ -14,7 +14,7 @@ export class SpeechEngine {
     this.lines = []
     this.currentIndex = -1
     this.isPlaying = false
-    this.rate = 1
+    this.rate = 0.95
     this.pitch = 1
     this.voice = null
     this._currentSpeakId = 0 // guards against stale async translation callbacks
@@ -120,6 +120,63 @@ export class SpeechEngine {
   // Private
   // ------------------------------------------------------------------
 
+  /**
+   * Split text into sentence-level chunks so the TTS engine can apply
+   * natural intonation to each sentence rather than a flat monotone over
+   * a long paragraph.  Chunks are kept ≤ 220 chars so no engine hits its
+   * internal length limit.
+   */
+  _splitIntoChunks(text) {
+    // Split after sentence-ending punctuation followed by whitespace or end-of-string
+    const parts = text.split(/(?<=[.!?…])\s+/)
+    const chunks = []
+    let current = ''
+    for (const part of parts) {
+      const p = part.trim()
+      if (!p) continue
+      if (current.length === 0) {
+        current = p
+      } else if (current.length + 1 + p.length <= 220) {
+        current += ' ' + p
+      } else {
+        chunks.push(current)
+        current = p
+      }
+    }
+    if (current) chunks.push(current)
+    return chunks.length > 0 ? chunks : [text]
+  }
+
+  /**
+   * Speak an ordered list of text chunks sequentially.
+   * Resolves when all chunks are done or playback is interrupted.
+   */
+  _speakChunks(chunks, speakId) {
+    return new Promise((resolve) => {
+      const next = (i) => {
+        if (i >= chunks.length || speakId !== this._currentSpeakId || !this.isPlaying) {
+          resolve()
+          return
+        }
+        const utt = new SpeechSynthesisUtterance(chunks[i])
+        utt.rate  = this.rate
+        utt.pitch = this.pitch
+        if (this.voice) utt.voice = this.voice
+        utt.onend = () => next(i + 1)
+        utt.onerror = (e) => {
+          if (e.error === 'interrupted' || e.error === 'canceled') {
+            resolve() // user interrupted — stop the chain cleanly
+          } else {
+            console.error('SpeechSynthesisUtterance error:', e.error)
+            next(i + 1) // non-fatal — skip this chunk
+          }
+        }
+        window.speechSynthesis.speak(utt)
+      }
+      next(0)
+    })
+  }
+
   async _speak(index) {
     const speakId = ++this._currentSpeakId
 
@@ -149,24 +206,11 @@ export class SpeechEngine {
     // Bail out if the user paused/stopped/seeked during the async translation fetch
     if (speakId !== this._currentSpeakId || !this.isPlaying) return
 
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = this.rate
-    utterance.pitch = this.pitch
-    if (this.voice) utterance.voice = this.voice
+    // Speak sentence-by-sentence for natural intonation
+    const chunks = this._splitIntoChunks(text)
+    await this._speakChunks(chunks, speakId)
 
-    utterance.onend = () => {
-      if (this.isPlaying && speakId === this._currentSpeakId) this._speak(index + 1)
-    }
-
-    utterance.onerror = (e) => {
-      // 'interrupted' / 'canceled' are expected when we cancel() before a new speak()
-      if (e.error !== 'interrupted' && e.error !== 'canceled') {
-        console.error('SpeechSynthesisUtterance error:', e.error)
-        if (this.isPlaying && speakId === this._currentSpeakId) this._speak(index + 1)
-      }
-    }
-
-    window.speechSynthesis.speak(utterance)
+    if (this.isPlaying && speakId === this._currentSpeakId) this._speak(index + 1)
   }
 
   _notifyState() {
