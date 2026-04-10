@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { parseDocument } from '../utils/documentParser'
 import ThemeToggle from './ThemeToggle'
 
-const FORMATS = ['PDF', 'DOCX', 'DOC', 'PPTX', 'TXT', 'MD', 'HTML', 'CSV', 'LOG']
+const FORMATS = ['PDF', 'DOCX', 'DOC', 'PPTX', 'TEX', 'TXT', 'MD', 'HTML', 'CSV', 'LOG']
 
 export default function FileUpload({ onLoad, theme, toggleTheme }) {
   const [isDragOver, setIsDragOver] = useState(false)
@@ -88,7 +88,7 @@ export default function FileUpload({ onLoad, theme, toggleTheme }) {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.docx,.doc,.pptx,.txt,.md,.markdown,.html,.htm,.csv,.log,.xml,.json"
+          accept=".pdf,.docx,.doc,.pptx,.tex,.txt,.md,.markdown,.html,.htm,.csv,.log,.xml,.json"
           onChange={onFileChange}
           style={{ display: 'none' }}
           tabIndex={-1}

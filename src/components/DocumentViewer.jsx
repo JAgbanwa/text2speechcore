@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import MathLine from './MathLine'
 
 /**
  * DocumentViewer
@@ -215,15 +216,14 @@ function CardViewer({ lines, currentLine, onLineClick, ext }) {
               // PPTX: treat the first item in each card as a title
               const isTitle = isPptx && itemIdx === 0
               return (
-                <p
+                <MathLine
                   key={idx}
                   ref={isActive ? activeRef : null}
+                  text={text}
                   className={`card-line${isActive ? ' active' : ''}${isTitle ? ' slide-title' : ''}`}
                   onClick={() => onLineClick(idx)}
                   title="Click to read from here"
-                >
-                  {text}
-                </p>
+                />
               )
             })}
           </div>

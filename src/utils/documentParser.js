@@ -30,10 +30,21 @@ export async function parseDocument(file) {
     case 'html':
     case 'htm':
       return parseHTML(file)
+    case 'tex':
+      return parseTex(file)
     default:
       // txt, md, markdown, csv, log, json, xml, etc.
       return parseText(file)
   }
+}
+
+// ---------------------------------------------------------------------------
+// LaTeX
+// ---------------------------------------------------------------------------
+async function parseTex(file) {
+  const { parseLaTeXSource } = await import('./parseLaTeX.js')
+  const src = await file.text()
+  return parseLaTeXSource(src)
 }
 
 // ---------------------------------------------------------------------------

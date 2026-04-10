@@ -1,3 +1,5 @@
+import { lineToSpeech } from './mathToSpeech.js'
+
 /**
  * SpeechEngine wraps the Web Speech API (SpeechSynthesis) and provides
  * line-by-line playback control over an array of text lines.
@@ -199,12 +201,15 @@ export class SpeechEngine {
     this.currentIndex = index
     if (this.onLineChange) this.onLineChange(index)
 
-    // Resolve text — possibly translated (async)
+    // Resolve text — possibly translated (async), then convert math to speech
     const rawText = this.lines[index]
-    const text = this.getLineText ? await this.getLineText(index, rawText) : rawText
+    const translatedText = this.getLineText ? await this.getLineText(index, rawText) : rawText
 
     // Bail out if the user paused/stopped/seeked during the async translation fetch
     if (speakId !== this._currentSpeakId || !this.isPlaying) return
+
+    // Convert LaTeX/Unicode math notation to spoken English
+    const text = lineToSpeech(translatedText)
 
     // Speak sentence-by-sentence for natural intonation
     const chunks = this._splitIntoChunks(text)
