@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { SpeechEngine } from '../utils/SpeechEngine'
 import ThemeToggle from './ThemeToggle'
+import DocumentViewer from './DocumentViewer'
 import { translateLine, LANGUAGES } from '../utils/translateText'
 
 /**
@@ -70,7 +71,7 @@ const IconBack = () => (
   </svg>
 )
 
-export default function TextReader({ lines, fileName, onReset, theme, toggleTheme }) {
+export default function TextReader({ lines, fileName, file, onReset, theme, toggleTheme }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentLine, setCurrentLine] = useState(-1)
   const [progress, setProgress] = useState(0)
@@ -86,8 +87,6 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
   const [translationTick, setTranslationTick] = useState(0) // increment to force re-render
 
   const engineRef = useRef(null)
-  const lineRefs  = useRef([])
-  const listRef   = useRef(null)
 
   // ——————————————————————————————————————————————
   // Engine setup
@@ -134,15 +133,6 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
     window.speechSynthesis.onvoiceschanged = load
     return () => { window.speechSynthesis.onvoiceschanged = null }
   }, [])
-
-  // ——————————————————————————————————————————————
-  // Auto-scroll active line into view
-  // ——————————————————————————————————————————————
-  useEffect(() => {
-    if (!focusMode && currentLine >= 0 && lineRefs.current[currentLine]) {
-      lineRefs.current[currentLine].scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [currentLine, focusMode])
 
   // ——————————————————————————————————————————————
   // Translation
@@ -238,8 +228,14 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
   // ——————————————————————————————————————————————
   // Render helpers
   // ——————————————————————————————————————————————
-  const isSeparator   = (l) => l.startsWith('──')
   const isTranslating = translateTo !== 'none' && translateTo !== sourceLang
+
+  // Text to display for the current line (translated if available)
+  const currentDisplayText = (() => {
+    if (currentLine < 0) return null
+    if (isTranslating) return translationsRef.current[currentLine] ?? lines[currentLine]
+    return lines[currentLine]
+  })()
 
   return (
     <div className={`reader-page${focusMode ? ' focus-mode' : ''}`}>
@@ -289,29 +285,23 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
         </div>
       )}
 
-      {/* ── Scrollable line list ── */}
+      {/* ── Document viewer ── */}
       {!focusMode && (
-        <div className="lines-list" ref={listRef}>
-          {lines.map((line, idx) => {
-            const translation = isTranslating ? translationsRef.current[idx] : null
-            return (
-              <div
-                key={idx}
-                ref={(el) => (lineRefs.current[idx] = el)}
-                className={`line-row${idx === currentLine ? ' active' : ''}${isSeparator(line) ? ' separator' : ''}`}
-                onClick={() => !isSeparator(line) && handleLineClick(idx)}
-                title={isSeparator(line) ? undefined : 'Click to read from here'}
-              >
-                <span className="ln">{isSeparator(line) ? '' : idx + 1}</span>
-                <span className="lt">
-                  {translation ?? line}
-                  {translation && translation !== line && (
-                    <span className="lt-original">{line}</span>
-                  )}
-                </span>
-              </div>
-            )
-          })}
+        <DocumentViewer
+          file={file}
+          lines={lines}
+          currentLine={currentLine}
+          onLineClick={handleLineClick}
+        />
+      )}
+
+      {/* ── Translation bar (shows current line translated, above controls) ── */}
+      {!focusMode && isTranslating && currentLine >= 0 && currentDisplayText && (
+        <div className="translation-bar" key={`${currentLine}-${translationTick}`}>
+          <span className="translation-bar-lang">
+            {LANGUAGES.find((l) => l.code === translateTo)?.label ?? translateTo}
+          </span>
+          <span className="translation-bar-text">{currentDisplayText}</span>
         </div>
       )}
 

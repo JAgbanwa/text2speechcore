@@ -533,6 +533,154 @@ button { font-family: var(--font); }
   text-align: center;
 }
 
+/* ── DocumentViewer ─────────────────────────────────────────────────────── */
+
+/* Loading spinner row */
+.viewer-loading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+/* ── PDF viewer ── */
+.pdf-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  background: var(--bg-page);
+}
+
+.pdf-page-wrap {
+  position: relative;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.pdf-canvas { display: block; }
+
+/* Invisible hit strips overlaid on the PDF canvas — one per extracted line */
+.pdf-line-hit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+.pdf-line-hit:hover { background: rgba(124,111,247,0.15); }
+.pdf-line-hit.active {
+  background: rgba(124,111,247,0.28);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* ── Card viewer (DOCX / PPTX / TXT) ── */
+.card-viewer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: var(--bg-page);
+}
+
+.doc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.slide-card { border-top: 3px solid var(--accent); }
+
+.card-divider {
+  padding: 0.4rem 1.5rem;
+  background: var(--bg-hover);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono, monospace);
+}
+
+.card-body {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-line {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+  color: var(--text);
+}
+.card-line:hover { background: var(--bg-hover); }
+.card-line.active {
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.slide-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.slide-title:hover { background: var(--bg-hover); }
+.slide-title.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── Translation bar (shown between viewer and controls) ── */
+.translation-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.6rem 1.5rem;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  animation: fadeIn 0.2s ease;
+}
+.translation-bar-lang {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.translation-bar-text {
+  color: var(--text);
+  line-height: 1.5;
+}
+
 /* ── Responsive ── */
 @media (max-width: 560px) {
   .controls-inner { flex-direction: column; align-items: flex-start; gap: 0.75rem; }

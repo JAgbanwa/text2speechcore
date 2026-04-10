@@ -4,7 +4,7 @@ import FileUpload from './components/FileUpload'
 import TextReader from './components/TextReader'
 
 export default function App() {
-  const [doc, setDoc] = useState(null) // { lines: string[], fileName: string }
+  const [doc, setDoc] = useState(null) // { lines, fileName, file }
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -13,13 +13,14 @@ export default function App() {
         <TextReader
           lines={doc.lines}
           fileName={doc.fileName}
+          file={doc.file}
           onReset={() => setDoc(null)}
           theme={theme}
           toggleTheme={toggleTheme}
         />
       ) : (
         <FileUpload
-          onLoad={(lines, fileName) => setDoc({ lines, fileName })}
+          onLoad={(lines, fileName, file) => setDoc({ lines, fileName, file })}
           theme={theme}
           toggleTheme={toggleTheme}
         />

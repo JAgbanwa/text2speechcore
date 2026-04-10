@@ -20,7 +20,7 @@ export default function FileUpload({ onLoad, theme, toggleTheme }) {
       try {
         const lines = await parseDocument(file)
         if (lines.length === 0) throw new Error('No readable text found in this document.')
-        onLoad(lines, file.name)
+        onLoad(lines, file.name, file)
       } catch (err) {
         setError(err.message ?? 'Failed to parse document.')
       } finally {
