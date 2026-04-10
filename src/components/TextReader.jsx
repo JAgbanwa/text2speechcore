@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { SpeechEngine } from '../utils/SpeechEngine'
+import ThemeToggle from './ThemeToggle'
 
 // Icons as tiny inline SVGs
 const IconPlay = () => (
@@ -44,7 +45,7 @@ const IconBack = () => (
   </svg>
 )
 
-export default function TextReader({ lines, fileName, onReset }) {
+export default function TextReader({ lines, fileName, onReset, theme, toggleTheme }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentLine, setCurrentLine] = useState(-1)
   const [progress, setProgress] = useState(0)
@@ -173,6 +174,8 @@ export default function TextReader({ lines, fileName, onReset }) {
         >
           {focusMode ? <IconShrink /> : <IconExpand />}
         </button>
+
+        <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       </header>
 
       {/* ── Focus mode: big centred line ── */}

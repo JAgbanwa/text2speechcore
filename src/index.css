@@ -2,20 +2,38 @@
 
 /* ── Design tokens ────────────────────────────────────────────── */
 :root {
-  --bg:           #0d0d18;
-  --bg-card:      #14141f;
-  --bg-hover:     #1c1c2e;
+  /* shared */
   --accent:       #7c6ff7;
   --accent-hi:    #a59dff;
   --accent-dim:   rgba(124, 111, 247, 0.12);
-  --text:         #e8e8f2;
-  --text-muted:   #8888aa;
-  --border:       rgba(255, 255, 255, 0.07);
   --border-focus: rgba(124, 111, 247, 0.45);
   --radius:       14px;
   --radius-sm:    8px;
   --font:         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --shadow-lg:    0 20px 60px rgba(0, 0, 0, 0.5);
+
+  /* dark (default) */
+  --bg:        #0d0d18;
+  --bg-card:   #14141f;
+  --bg-hover:  #1c1c2e;
+  --text:      #e8e8f2;
+  --text-muted:#8888aa;
+  --border:    rgba(255, 255, 255, 0.07);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Light theme overrides ────────────────────────────────────── */
+html[data-theme="light"] {
+  --bg:           #f2f2fb;
+  --bg-card:      #ffffff;
+  --bg-hover:     #e8e8f6;
+  --accent:       #5d52d8;
+  --accent-hi:    #7c6ff7;
+  --accent-dim:   rgba(93, 82, 216, 0.09);
+  --border-focus: rgba(93, 82, 216, 0.4);
+  --text:         #1a1a2e;
+  --text-muted:   #666688;
+  --border:       rgba(0, 0, 0, 0.08);
+  --shadow-lg:    0 20px 60px rgba(0, 0, 0, 0.1);
 }
 
 /* ── Reset ────────────────────────────────────────────────────── */
@@ -33,6 +51,7 @@ body {
   color: var(--text);
   min-height: 100dvh;
   line-height: 1.6;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 #root, .app { min-height: 100dvh; display: flex; flex-direction: column; }
@@ -53,6 +72,14 @@ button { font-family: var(--font); }
 }
 
 /* Header */
+.upload-topbar {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -1rem;
+}
+
 .upload-header { text-align: center; }
 
 .upload-logo {
@@ -233,6 +260,28 @@ button { font-family: var(--font); }
 }
 .icon-btn:hover     { background: var(--bg-hover); color: var(--text); }
 .icon-btn.active    { color: var(--accent); background: var(--accent-dim); }
+
+/* Theme toggle – shared between upload page and reader header */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+  border-color: var(--border-focus);
+}
+.theme-toggle:active { transform: scale(0.9); }
 
 .file-info {
   flex: 1;
