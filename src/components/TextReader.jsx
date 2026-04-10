@@ -3,6 +3,30 @@ import { SpeechEngine } from '../utils/SpeechEngine'
 import ThemeToggle from './ThemeToggle'
 import { translateLine, LANGUAGES } from '../utils/translateText'
 
+/**
+ * Score a SpeechSynthesisVoice for human quality.
+ * Higher = better.  Online / neural / enhanced voices score highest.
+ */
+function rankVoice(voice) {
+  const name = voice.name.toLowerCase()
+  let score = 0
+  if (!voice.localService) score += 200              // cloud / online voices
+  if (/natural|neural|enhanced|premium/.test(name)) score += 100
+  if (/wavenet|studio/.test(name))                  score += 80
+  if (/google/.test(name))                          score += 40
+  if (/microsoft/.test(name))                       score += 30
+  if (/apple|siri|samantha|alex|karen|daniel/.test(name)) score += 50
+  return score
+}
+
+/** Human-readable quality label shown next to a voice name */
+function voiceQualityLabel(voice) {
+  const name = voice.name.toLowerCase()
+  if (!voice.localService)                          return '★★★'
+  if (/natural|neural|enhanced|premium|wavenet|studio/.test(name)) return '★★'
+  return ''
+}
+
 // Icons as tiny inline SVGs
 const IconPlay = () => (
   <svg width="26" height="26" viewBox="0 0 26 26" fill="currentColor">
@@ -50,7 +74,7 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentLine, setCurrentLine] = useState(-1)
   const [progress, setProgress] = useState(0)
-  const [rate, setRate] = useState(1)
+  const [rate, setRate] = useState(0.95)
   const [voices, setVoices] = useState([])
   const [voiceIdx, setVoiceIdx] = useState(0)
   const [focusMode, setFocusMode] = useState(false)
@@ -88,17 +112,23 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
   }, [lines])
 
   // ——————————————————————————————————————————————
-  // Voice loading
+  // Voice loading — sorted by quality (online/neural first)
   // ——————————————————————————————————————————————
   useEffect(() => {
     const load = () => {
-      const all = window.speechSynthesis.getVoices()
-      if (all.length === 0) return
-      setVoices(all)
-      const engIdx = all.findIndex((v) => v.lang.startsWith('en'))
-      const defaultIdx = engIdx >= 0 ? engIdx : 0
+      const raw = window.speechSynthesis.getVoices()
+      if (raw.length === 0) return
+      // Sort: highest quality first, then alphabetically within same score
+      const sorted = [...raw].sort((a, b) => {
+        const diff = rankVoice(b) - rankVoice(a)
+        return diff !== 0 ? diff : a.name.localeCompare(b.name)
+      })
+      setVoices(sorted)
+      // Pick the best English voice (first English in sorted list)
+      const bestEngIdx = sorted.findIndex((v) => v.lang.startsWith('en'))
+      const defaultIdx = bestEngIdx >= 0 ? bestEngIdx : 0
       setVoiceIdx(defaultIdx)
-      engineRef.current?.setVoice(all[defaultIdx])
+      engineRef.current?.setVoice(sorted[defaultIdx])
     }
     load()
     window.speechSynthesis.onvoiceschanged = load
@@ -368,11 +398,14 @@ export default function TextReader({ lines, fileName, onReset, theme, toggleThem
                   onChange={handleVoiceChange}
                   aria-label="Select voice"
                 >
-                  {voices.map((v, i) => (
-                    <option key={i} value={i}>
-                      {v.name} ({v.lang})
-                    </option>
-                  ))}
+                  {voices.map((v, i) => {
+                    const stars = voiceQualityLabel(v)
+                    return (
+                      <option key={i} value={i}>
+                        {stars ? `${stars} ` : ''}{v.name} ({v.lang})
+                      </option>
+                    )
+                  })}
                 </select>
               </label>
             )}
