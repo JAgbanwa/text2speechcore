@@ -1,2 +1,56 @@
-# text2speechcore
-This repository is built to contain the contents of a web app which is meant to input a document (of any format and size) and at the tap of a button, the texts of the doc is lucidly readable line per line to the user.
+# Text2Speech Core
+
+A web app that accepts a document of any format and reads its text aloud to you — line by line — at the tap of a button.
+
+## Features
+
+- **Universal document support** — PDF, DOCX, DOC, TXT, Markdown, HTML, CSV, and more
+- **Line-by-line playback** — each line is highlighted and auto-scrolled into view as it is spoken
+- **Full transport controls** — Play, Pause, Stop, Previous line, Next line
+- **Seek anywhere** — click any line in the list to jump directly to it, or drag the progress scrubber
+- **Speed control** — playback rate from 0.5× to 2×
+- **Voice selector** — choose from all voices installed on your device
+- **Focus mode** — hides the list and shows only the active line large and centred on screen
+- **Drag-and-drop upload** — drop a file onto the upload zone or use the file picker
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| UI framework | React 18 + Vite 5 |
+| PDF parsing | [pdf.js](https://mozilla.github.io/pdf.js/) (`pdfjs-dist`) |
+| DOCX parsing | [Mammoth.js](https://github.com/mwilliamson/mammoth.js) |
+| Speech | Web Speech API (`SpeechSynthesis`) |
+| Styling | Plain CSS (custom properties, no framework) |
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server  (http://localhost:5173)
+npm run dev
+
+# Production build → dist/
+npm run build
+```
+
+## Project Structure
+
+```
+src/
+├── App.jsx                      # Root — switches between upload and reader views
+├── index.css                    # Global styles and design tokens
+├── main.jsx
+├── components/
+│   ├── FileUpload.jsx           # Drag-and-drop upload screen
+│   └── TextReader.jsx           # Line list, transport bar, focus mode
+└── utils/
+    ├── documentParser.js        # Extracts text lines from any supported format
+    └── SpeechEngine.js          # Web Speech API wrapper with line-by-line control
+```
+
+## Browser Support
+
+Requires a browser with the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) (`SpeechSynthesis`). Fully supported in Chrome, Edge, and Safari. Firefox support varies by platform.
