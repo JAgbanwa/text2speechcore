@@ -11,6 +11,7 @@ A web app that accepts a document of any format and reads its text aloud to you 
 - **Speed control** — playback rate from 0.5× to 2×
 - **Voice selector** — choose from all voices installed on your device
 - **Focus mode** — hides the list and shows only the active line large and centred on screen
+- **Light & dark mode** — toggle between themes at any time; preference is saved to `localStorage` and the initial value follows your OS setting
 - **Drag-and-drop upload** — drop a file onto the upload zone or use the file picker
 
 ## Tech Stack
@@ -41,11 +42,14 @@ npm run build
 ```
 src/
 ├── App.jsx                      # Root — switches between upload and reader views
-├── index.css                    # Global styles and design tokens
+├── index.css                    # Global styles and design tokens (dark + light themes)
 ├── main.jsx
 ├── components/
 │   ├── FileUpload.jsx           # Drag-and-drop upload screen
-│   └── TextReader.jsx           # Line list, transport bar, focus mode
+│   ├── TextReader.jsx           # Line list, transport bar, focus mode
+│   └── ThemeToggle.jsx          # Sun / moon icon button
+├── hooks/
+│   └── useTheme.js              # Reads OS preference, persists choice to localStorage
 └── utils/
     ├── documentParser.js        # Extracts text lines from any supported format
     └── SpeechEngine.js          # Web Speech API wrapper with line-by-line control

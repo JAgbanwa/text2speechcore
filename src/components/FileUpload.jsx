@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from 'react'
 import { parseDocument } from '../utils/documentParser'
+import ThemeToggle from './ThemeToggle'
 
 const FORMATS = ['PDF', 'DOCX', 'DOC', 'TXT', 'MD', 'HTML', 'CSV', 'LOG']
 
-export default function FileUpload({ onLoad }) {
+export default function FileUpload({ onLoad, theme, toggleTheme }) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingMsg, setLoadingMsg] = useState('')
@@ -55,6 +56,9 @@ export default function FileUpload({ onLoad }) {
 
   return (
     <div className="upload-page">
+      <div className="upload-topbar">
+        <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+      </div>
       <div className="upload-header">
         <div className="upload-logo" aria-hidden="true">
           <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
